@@ -1,11 +1,12 @@
 package com.alura.literalura;
 
-import com.alura.literalura.model.Resultado;
-import com.alura.literalura.service.ConsumoAPI;
-import com.alura.literalura.service.ConvierteDatos;
+import com.alura.literalura.model.DatosLibro;
+import com.alura.literalura.service.LibroService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+import java.util.List;
 
 @SpringBootApplication
 public class LiteraluraApplication implements CommandLineRunner {
@@ -16,21 +17,25 @@ public class LiteraluraApplication implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) throws Exception {
-		ConsumoAPI consumoAPI = new ConsumoAPI();
-		ConvierteDatos conversor = new ConvierteDatos();
+		LibroService libroService = new LibroService();
 		
-		var json = consumoAPI.obtenerDatos("https://gutendex.com/books/?search=pride%20and%20prejudice");
-		Resultado datos = conversor.obtenerDatos(json, Resultado.class);
+		System.out.println("=== BÚSQUEDA: Pride and Prejudice ===");
+		List<DatosLibro> librosPride = libroService.buscarLibrosPorTitulo("pride and prejudice");
 		
-		System.out.println("Total de libros encontrados: " + datos.total());
-		datos.resultados().stream()
-				.limit(5)
+		if (!librosPride.isEmpty()) {
+			DatosLibro primerLibro = librosPride.get(0);
+			libroService.mostrarInformacionLibro(primerLibro);
+		}
+		
+		System.out.println("\n=== ESTADÍSTICAS DE LA BÚSQUEDA ===");
+		libroService.mostrarEstadisticas(librosPride);
+		
+		System.out.println("\n=== LIBROS ORDENADOS POR DESCARGAS ===");
+		List<DatosLibro> librosOrdenados = libroService.ordenarPorDescargas(librosPride);
+		librosOrdenados.stream()
+				.limit(3)
 				.forEach(libro -> {
-					System.out.println("Título: " + libro.titulo());
-					System.out.println("Autor: " + (libro.autores().isEmpty() ? "Desconocido" : libro.autores().get(0).nombre()));
-					System.out.println("Idioma: " + libro.idiomas());
-					System.out.println("Descargas: " + libro.numeroDeDescargas());
-					System.out.println("------------------------");
+					System.out.println("• " + libro.getTitulo() + " - Descargas: " + libro.getNumeroDeDescargas());
 				});
 	}
 }
