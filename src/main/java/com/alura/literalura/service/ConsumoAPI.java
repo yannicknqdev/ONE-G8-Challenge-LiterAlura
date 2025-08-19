@@ -7,6 +7,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
 public class ConsumoAPI {
+    private static final String URL_BASE = "https://gutendex.com/";
     
     public String obtenerDatos(String url) {
         HttpClient client = HttpClient.newHttpClient();
@@ -22,5 +23,9 @@ public class ConsumoAPI {
         }
         
         return response.body();
+    }
+    
+    public String obtenerDatosRelativa(String endpoint) {
+        return obtenerDatos(URL_BASE + endpoint);
     }
 }
