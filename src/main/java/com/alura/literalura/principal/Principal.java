@@ -1,14 +1,19 @@
 package com.alura.literalura.principal;
 
-import com.alura.literalura.model.DatosLibro;
+import com.alura.literalura.model.*;
 import com.alura.literalura.service.LibroService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Scanner;
 
+@Component
 public class Principal {
     private Scanner teclado = new Scanner(System.in);
-    private LibroService libroService = new LibroService();
+    
+    @Autowired
+    private LibroService libroService;
 
     public void muestraElMenu() {
         var opcion = -1;
@@ -78,8 +83,8 @@ public class Principal {
     }
 
     private void buscarLibroPorTitulo() {
-        System.out.println("\n📖 BÚSQUEDA DE LIBRO POR TÍTULO");
-        System.out.println("Ingrese el nombre del libro que desea buscar:");
+        System.out.println("\n📖 BÚSQUEDA Y REGISTRO DE LIBRO POR TÍTULO");
+        System.out.println("Ingrese el nombre del libro que desea buscar y guardar:");
         var tituloLibro = teclado.nextLine().trim();
         
         if (tituloLibro.isEmpty()) {
@@ -88,23 +93,14 @@ public class Principal {
         }
 
         try {
-            System.out.println("🔍 Buscando en la API de Gutendx...\n");
-            List<DatosLibro> libros = libroService.buscarLibrosPorTitulo(tituloLibro);
+            System.out.println("🔍 Buscando libro: \"" + tituloLibro + "\"...\n");
+            Libro libro = libroService.buscarYGuardarLibro(tituloLibro);
             
-            if (libros.isEmpty()) {
-                System.out.println("📭 No se encontraron libros con el título: \"" + tituloLibro + "\"\n");
+            if (libro != null) {
+                libroService.mostrarLibro(libro);
+                System.out.println();
             } else {
-                System.out.println("✅ Se encontraron " + libros.size() + " libro(s):\n");
-                libros.stream()
-                    .limit(5) // mostrar máximo 5 resultados
-                    .forEach(libro -> {
-                        libroService.mostrarInformacionLibro(libro);
-                        System.out.println();
-                    });
-                
-                if (libros.size() > 5) {
-                    System.out.println("📋 Mostrando los primeros 5 resultados de " + libros.size() + " encontrados.\n");
-                }
+                System.out.println("📭 No se encontró el libro: \"" + tituloLibro + "\"\n");
             }
         } catch (Exception e) {
             System.out.println("❌ Error al buscar el libro: " + e.getMessage() + "\n");
@@ -112,13 +108,52 @@ public class Principal {
     }
 
     private void listarLibrosRegistrados() {
-        System.out.println("\n📚 LIBROS REGISTRADOS");
-        System.out.println("Esta funcionalidad se implementará con la base de datos.\n");
+        System.out.println("\n📚 LIBROS REGISTRADOS EN LA BASE DE DATOS");
+        
+        try {
+            List<Libro> libros = libroService.listarTodosLosLibros();
+            
+            if (libros.isEmpty()) {
+                System.out.println("📭 No hay libros registrados en la base de datos.\n");
+                System.out.println("💡 Tip: Use la opción 1 para buscar y guardar libros desde la API.\n");
+            } else {
+                System.out.println("✅ Total de libros registrados: " + libros.size() + "\n");
+                libros.forEach(libro -> {
+                    System.out.println("📖 " + libro.getTitulo());
+                    System.out.println("👤 " + (libro.getAutor() != null ? libro.getAutor().getNombre() : "Autor desconocido"));
+                    System.out.println("🌍 " + libro.getIdioma());
+                    System.out.println("📊 " + String.format("%.0f", libro.getNumeroDeDescargas()) + " descargas");
+                    System.out.println("------------------------");
+                });
+                System.out.println();
+            }
+        } catch (Exception e) {
+            System.out.println("❌ Error al listar libros: " + e.getMessage() + "\n");
+        }
     }
 
     private void listarAutoresRegistrados() {
-        System.out.println("\n👤 AUTORES REGISTRADOS");
-        System.out.println("Esta funcionalidad se implementará con la base de datos.\n");
+        System.out.println("\n👤 AUTORES REGISTRADOS EN LA BASE DE DATOS");
+        
+        try {
+            List<Autor> autores = libroService.listarTodosLosAutores();
+            
+            if (autores.isEmpty()) {
+                System.out.println("📭 No hay autores registrados en la base de datos.\n");
+                System.out.println("💡 Tip: Los autores se registran automáticamente al guardar libros.\n");
+            } else {
+                System.out.println("✅ Total de autores registrados: " + autores.size() + "\n");
+                autores.forEach(autor -> {
+                    System.out.println("👤 " + autor.getNombre());
+                    System.out.println("📅 Nacimiento: " + (autor.getFechaDeNacimiento() != null ? autor.getFechaDeNacimiento() : "Desconocido"));
+                    System.out.println("⚰️ Deceso: " + (autor.getFechaDeDeceso() != null ? autor.getFechaDeDeceso() : "Vivo o desconocido"));
+                    System.out.println("------------------------");
+                });
+                System.out.println();
+            }
+        } catch (Exception e) {
+            System.out.println("❌ Error al listar autores: " + e.getMessage() + "\n");
+        }
     }
 
     private void listarAutoresVivosEnAno() {
@@ -134,7 +169,21 @@ public class Principal {
                 return;
             }
             
-            System.out.println("Esta funcionalidad se implementará con la base de datos.\n");
+            List<Autor> autoresVivos = libroService.buscarAutoresVivosEnAno(ano);
+            
+            if (autoresVivos.isEmpty()) {
+                System.out.println("📭 No se encontraron autores vivos en el año " + ano + ".\n");
+                System.out.println("💡 Tip: Registre más libros para obtener más información de autores.\n");
+            } else {
+                System.out.println("✅ Autores vivos en " + ano + ":\n");
+                autoresVivos.forEach(autor -> {
+                    System.out.println("👤 " + autor.getNombre());
+                    System.out.println("📅 Nacimiento: " + (autor.getFechaDeNacimiento() != null ? autor.getFechaDeNacimiento() : "Desconocido"));
+                    System.out.println("⚰️ Deceso: " + (autor.getFechaDeDeceso() != null ? autor.getFechaDeDeceso() : "Vivo o desconocido"));
+                    System.out.println("------------------------");
+                });
+                System.out.println();
+            }
         } catch (Exception e) {
             System.out.println("❌ Error: Por favor ingrese un año válido.\n");
             teclado.nextLine(); // limpiar buffer
@@ -142,7 +191,7 @@ public class Principal {
     }
 
     private void listarLibrosPorIdioma() {
-        System.out.println("\n🌍 LIBROS POR IDIOMA");
+        System.out.println("\n🌍 LIBROS POR IDIOMA (BASE DE DATOS)");
         System.out.println("Seleccione el idioma:");
         System.out.println("en - Inglés");
         System.out.println("es - Español");  
@@ -158,24 +207,23 @@ public class Principal {
         }
 
         try {
-            System.out.println("🔍 Buscando libros en " + getNombreIdioma(idioma) + "...\n");
+            System.out.println("🔍 Buscando libros en " + getNombreIdioma(idioma) + " en la base de datos...\n");
             
-            // Por ahora buscaremos algunos libros populares y los filtraremos por idioma
-            List<DatosLibro> todosLibros = libroService.obtenerTodosLosLibros();
-            List<DatosLibro> librosPorIdioma = libroService.filtrarPorIdioma(todosLibros, idioma);
+            List<Libro> librosPorIdioma = libroService.listarLibrosPorIdioma(idioma);
+            Long totalLibros = libroService.contarLibrosPorIdioma(idioma);
             
             if (librosPorIdioma.isEmpty()) {
-                System.out.println("📭 No se encontraron libros en " + getNombreIdioma(idioma) + ".\n");
+                System.out.println("📭 No se encontraron libros en " + getNombreIdioma(idioma) + " en la base de datos.\n");
+                System.out.println("💡 Tip: Registre libros usando la opción 1 para verlos aquí.\n");
             } else {
-                System.out.println("✅ Libros en " + getNombreIdioma(idioma) + ":\n");
-                librosPorIdioma.stream()
-                    .limit(10)
-                    .forEach(libro -> {
-                        System.out.println("📖 " + libro.getTitulo());
-                        System.out.println("👤 " + libroService.obtenerNombresAutores(libro));
-                        System.out.println("📊 Descargas: " + libro.getNumeroDeDescargas());
-                        System.out.println("------------------------");
-                    });
+                System.out.println("✅ Libros en " + getNombreIdioma(idioma) + ": " + totalLibros + " libro(s)\n");
+                librosPorIdioma.forEach(libro -> {
+                    System.out.println("📖 " + libro.getTitulo());
+                    System.out.println("👤 " + (libro.getAutor() != null ? libro.getAutor().getNombre() : "Autor desconocido"));
+                    System.out.println("📊 Descargas: " + String.format("%.0f", libro.getNumeroDeDescargas()));
+                    System.out.println("------------------------");
+                });
+                System.out.println();
             }
         } catch (Exception e) {
             System.out.println("❌ Error al filtrar libros: " + e.getMessage() + "\n");
